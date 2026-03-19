@@ -19,8 +19,6 @@ for (const key of REQUIRED_ENV) {
   }
 }
 
-const trackerKey = process.env.TRACKER_API_KEY;
-console.log(`[TRIBUNAL] TRACKER_API_KEY loaded — length: ${trackerKey.length}, starts with: ${trackerKey.slice(0, 6)}...`);
 
 // ─── Discord client ───────────────────────────────────────────────────────────
 
