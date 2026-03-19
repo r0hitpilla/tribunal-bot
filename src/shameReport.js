@@ -40,7 +40,7 @@ const WEEKLY_TITLES = [
   {
     id:    'charity_kills',
     title: 'Certified Kill Donation Service',
-    desc:  'K/D ratio beneath the floor — reliably boosting the enemy team's confidence',
+    desc:  'K/D ratio beneath the floor — reliably boosting the enemy team\'s confidence',
     check: (s) => s.kd < 0.5,
   },
   {
