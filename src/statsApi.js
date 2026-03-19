@@ -51,15 +51,20 @@ function parseValorantStats(data, username) {
   };
 }
 
-// ─── CS2 ─────────────────────────────────────────────────────────────────────
+// ─── CS2 (Steam Web API) ─────────────────────────────────────────────────────
 
 async function getCS2Stats(steamId) {
-  const url = `${TRACKER_BASE}/csgo/standard/profile/steam/${encodeURIComponent(steamId)}`;
+  const key = process.env.STEAM_API_KEY;
+  if (!key) throw new Error('STEAM_API_KEY is not set');
 
-  const res = await fetch(url, { headers: trackerHeaders() });
+  const url =
+    `https://api.steampowered.com/ISteamUserStats/GetUserStatsForGame/v2/` +
+    `?appid=730&key=${key}&steamid=${steamId}`;
+
+  const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`tracker.gg ${res.status} for "${steamId}": ${body.slice(0, 120)}`);
+    throw new Error(`Steam API ${res.status} for "${steamId}": ${body.slice(0, 120)}`);
   }
 
   const json = await res.json();
@@ -67,25 +72,32 @@ async function getCS2Stats(steamId) {
 }
 
 function parseCS2Stats(data, steamId) {
-  const segments = data?.data?.segments ?? [];
-  const overview = segments.find(s => s.type === 'overview');
+  const stats = data?.playerstats?.stats;
+  if (!stats || stats.length === 0) return zeroStats(steamId, 'CS2');
 
-  if (!overview) {
-    return zeroStats(steamId, 'CS2');
-  }
+  const get = name => stats.find(s => s.name === name)?.value ?? 0;
 
-  const s = overview.stats ?? {};
+  const kills   = get('total_kills');
+  const deaths  = get('total_deaths');
+  const matches = get('total_matches_played');
+  const wins    = get('total_matches_won');
+  const hs      = get('total_kills_headshot');
+
+  const kd      = deaths > 0 ? +(kills / deaths).toFixed(2) : kills;
+  const winRate = matches > 0 ? +((wins / matches) * 100).toFixed(1) : 0;
+  const hsPct   = kills  > 0 ? +((hs   / kills)   * 100).toFixed(1) : 0;
+
   return {
-    username:    steamId,
-    game:        'cs2',
-    kda:         +(s.kda?.value             ?? 0).toFixed(2),
-    kd:          +(s.kdRatio?.value         ?? 0).toFixed(2),
-    deaths:      Math.round(s.deaths?.value ?? 0),
-    winRate:     +(s.wlPercentage?.value    ?? 0).toFixed(1),
-    headshot:    +(s.headshotPct?.value     ?? 0).toFixed(1),
-    matches:     Math.round(s.matchesPlayed?.value ?? 0),
-    rank:        s.rank?.metadata?.tierName ?? 'Unranked',
-    raw:         data,
+    username: steamId,
+    game:     'cs2',
+    kda:      kd,
+    kd,
+    deaths,
+    winRate,
+    headshot: hsPct,
+    matches,
+    rank:     'N/A',
+    raw:      data,
   };
 }
 
